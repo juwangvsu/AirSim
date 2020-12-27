@@ -61,3 +61,5 @@ nvidia-docker run -it \
     --rm \
     $DOCKER_IMAGE_NAME \
     /bin/bash -c "$UNREAL_BINARY_COMMAND"
+
+##    --runtime=nvidia \

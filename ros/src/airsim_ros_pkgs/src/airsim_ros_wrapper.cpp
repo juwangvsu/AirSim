@@ -76,11 +76,19 @@ void AirsimROSWrapper::initialize_airsim()
 
         for (const auto& vehicle_name_ptr_pair : vehicle_name_ptr_map_)
         {
-            airsim_client_->enableApiControl(true, vehicle_name_ptr_pair.first); // todo expose as rosservice?
-            airsim_client_->armDisarm(true, vehicle_name_ptr_pair.first); // todo exposes as rosservice?
+	    std::cout<< "calling enableApiControl\n" << vehicle_name_ptr_pair.first << std::endl;
+            airsim_client_->enableApiControl(true); // todo expose as rosservice?
+            //airsim_client_->enableApiControl(true, vehicle_name_ptr_pair.first); // todo expose as rosservice?
+	    std::cout<< "calling enableApiControl end\n";
+	    if (vehicle_name_ptr_pair.first=="SimpleFlight")
+	    {
+	       std::cout<< "armDisarm " << vehicle_name_ptr_pair.first << std::endl;
+               airsim_client_->armDisarm(true, vehicle_name_ptr_pair.first); // todo exposes as rosservice?
+	    }
         }
 
         origin_geo_point_ = airsim_client_->getHomeGeoPoint("");
+	std::cout << "getHomeGeoPoint " << origin_geo_point_ <<std::endl;
         // todo there's only one global origin geopoint for environment. but airsim API accept a parameter vehicle_name? inside carsimpawnapi.cpp, there's a geopoint being assigned in the constructor. by? 
         origin_geo_point_msg_ = get_gps_msg_from_airsim_geo_point(origin_geo_point_);
     }
@@ -1016,10 +1024,14 @@ ros::Time AirsimROSWrapper::update_state()
         auto& vehicle_ros = vehicle_name_ptr_pair.second;
 
         // vehicle environment, we can get ambient temperature here and other truths
-        auto env_data = airsim_client_->simGetGroundTruthEnvironment(vehicle_ros->vehicle_name);
+	if (vehicle_ros->vehicle_name=="SimpleFlight")
+	{
 
-        if (airsim_mode_ == AIRSIM_MODE::DRONE)
-        {
+	  std::cout<< "simGetGroundTruthEnvironment " << vehicle_ros->vehicle_name << std::endl;
+          auto env_data = airsim_client_->simGetGroundTruthEnvironment(vehicle_ros->vehicle_name);
+
+          if (airsim_mode_ == AIRSIM_MODE::DRONE)
+          {
             auto drone = static_cast<MultiRotorROS*>(vehicle_ros.get());
             auto rpc = static_cast<msr::airlib::MultirotorRpcLibClient*>(airsim_client_.get());
             drone->curr_drone_state = rpc->getMultirotorState(vehicle_ros->vehicle_name);
@@ -1035,9 +1047,9 @@ ros::Time AirsimROSWrapper::update_state()
             vehicle_ros->gps_sensor_msg.header.stamp = vehicle_time;
 
             vehicle_ros->curr_odom = get_odom_msg_from_multirotor_state(drone->curr_drone_state);
-        }
-        else
-        {
+          }
+          else
+          {
             auto car = static_cast<CarROS*>(vehicle_ros.get());
             auto rpc = static_cast<msr::airlib::CarRpcLibClient*>(airsim_client_.get());
             car->curr_car_state = rpc->getCarState(vehicle_ros->vehicle_name);
@@ -1057,19 +1069,20 @@ ros::Time AirsimROSWrapper::update_state()
             airsim_ros_pkgs::CarState state_msg = get_roscarstate_msg_from_car_state(car->curr_car_state);
             state_msg.header.frame_id = vehicle_ros->vehicle_name;
             car->car_state_msg = state_msg;
-        }
+          }
 
-        vehicle_ros->stamp = vehicle_time;
+          vehicle_ros->stamp = vehicle_time;
         
-        airsim_ros_pkgs::Environment env_msg = get_environment_msg_from_airsim(env_data);
-        env_msg.header.frame_id = vehicle_ros->vehicle_name;
-        env_msg.header.stamp = vehicle_time;
-        vehicle_ros->env_msg = env_msg;
+          airsim_ros_pkgs::Environment env_msg = get_environment_msg_from_airsim(env_data);
+          env_msg.header.frame_id = vehicle_ros->vehicle_name;
+          env_msg.header.stamp = vehicle_time;
+          vehicle_ros->env_msg = env_msg;
 
         // convert airsim drone state to ROS msgs            
-        vehicle_ros->curr_odom.header.frame_id = vehicle_ros->vehicle_name;
-        vehicle_ros->curr_odom.child_frame_id = vehicle_ros->odom_frame_id;
-        vehicle_ros->curr_odom.header.stamp = vehicle_time;
+          vehicle_ros->curr_odom.header.frame_id = vehicle_ros->vehicle_name;
+          vehicle_ros->curr_odom.child_frame_id = vehicle_ros->odom_frame_id;
+          vehicle_ros->curr_odom.header.stamp = vehicle_time;
+	}
     }
 
     return curr_ros_time;

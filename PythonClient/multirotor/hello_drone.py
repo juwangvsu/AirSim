@@ -12,7 +12,6 @@ client = airsim.MultirotorClient()
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
-
 state = client.getMultirotorState()
 s = pprint.pformat(state)
 print("state: %s" % s)
@@ -33,6 +32,7 @@ gps_data = client.getGpsData()
 s = pprint.pformat(gps_data)
 print("gps_data: %s" % s)
 
+exit()
 airsim.wait_key('Press any key to takeoff')
 client.takeoffAsync().join()
 

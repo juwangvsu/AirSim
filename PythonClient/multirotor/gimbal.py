@@ -4,14 +4,16 @@ import airsim
 import time
 
 # connect to the AirSim simulator
-client = airsim.MultirotorClient()
+client = airsim.MultirotorClient(ip="192.168.86.61")
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
+serverversion = client.getServerVersion()
+print(serverversion)
 # MultirotorClient.wait_key('Press any key to takeoff')
 print("Taking off")
-client.takeoffAsync().join()
+#client.takeoffAsync().join()
 print("Ready")
 
 for i in range(5):
