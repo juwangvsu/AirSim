@@ -9,14 +9,22 @@ import airsim
 import cv2
 import time
 import sys
+import argparse
+
+    # Parse configuration files
+parser = argparse.ArgumentParser(description='hello_drone')
+parser.add_argument('--ip', type=str, default='localhost') # ip config
+parser.add_argument('--camtype', type=str, default='depth') # camera type config
+# parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
+args                = parser.parse_args()
+ipaddr             = args.ip
 
 def printUsage():
-   print("Usage: python camera.py [depth|segmentation|scene]")
+   print("Usage: python camera.py --ip ipaddr --type [depth|segmentation|scene]")
 
-cameraType = "depth"
+cameraType = args.camtype 
+#cameraType = "depth"
 
-for arg in sys.argv[1:]:
-  cameraType = arg.lower()
 
 cameraTypeMap = { 
  "depth": airsim.ImageType.DepthVis,
@@ -33,7 +41,9 @@ if (not cameraType in cameraTypeMap):
 
 print (cameraTypeMap[cameraType])
 
-client = airsim.MultirotorClient()
+# connect to game with airsim plugin
+client = airsim.MultirotorClient(ip=ipaddr)
+#client = airsim.MultirotorClient()
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)

@@ -14,7 +14,7 @@ class Position:
 
 # Make the drone fly in a circle.
 class OrbitNavigator:
-    def __init__(self, radius = 2, altitude = 10, speed = 2, iterations = 1, center = [1,0], snapshots = None):
+    def __init__(self, radius = 2, altitude = 10, speed = 2, iterations = 1, center = [1,0], snapshots = None, ip="localhost"):
         self.radius = radius
         self.altitude = altitude
         self.speed = speed
@@ -44,7 +44,7 @@ class OrbitNavigator:
         cx *= self.radius
         cy *= self.radius
 
-        self.client = airsim.MultirotorClient()
+        self.client = airsim.MultirotorClient(ip=ip)
         self.client.confirmConnection()
         self.client.enableApiControl(True)
 
@@ -236,6 +236,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("--center", help="x,y direction vector pointing to center of orbit from current starting position (default 1,0)", default="1,0")
     arg_parser.add_argument("--iterations", type=float, help="number of 360 degree orbits (default 3)", default=3)
     arg_parser.add_argument("--snapshots", type=float, help="number of FPV snapshots to take during orbit (default 0)", default=0)    
+    arg_parser.add_argument('--ip', type=str, default='localhost') # ip config
+
     args = arg_parser.parse_args(args)    
-    nav = OrbitNavigator(args.radius, args.altitude, args.speed, args.iterations, args.center.split(','), args.snapshots)
+    nav = OrbitNavigator(args.radius, args.altitude, args.speed, args.iterations, args.center.split(','), args.snapshots, args.ip)
     nav.start()

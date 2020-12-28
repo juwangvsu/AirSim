@@ -17,7 +17,7 @@ class LidarTest:
     def __init__(self):
 
         # connect to the AirSim simulator
-        self.client = airsim.MultirotorClient()
+        self.client = airsim.MultirotorClient(ip="192.168.86.61")
         self.client.confirmConnection()
         self.client.enableApiControl(True)
 

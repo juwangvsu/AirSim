@@ -6,9 +6,21 @@ import os
 import tempfile
 import pprint
 import cv2
+import random
+import math
+import shutil
+import argparse
+
+    # Parse configuration files
+parser = argparse.ArgumentParser(description='hello_drone')
+parser.add_argument('--ip', type=str, default='localhost') # ip config
+# parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
+args                = parser.parse_args()
+ipaddr             = args.ip
 
 # connect to the AirSim simulator
-client = airsim.MultirotorClient()
+client = airsim.MultirotorClient(ip=ipaddr)
+#client = airsim.MultirotorClient(ip="192.168.86.61")
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
@@ -32,7 +44,6 @@ gps_data = client.getGpsData()
 s = pprint.pformat(gps_data)
 print("gps_data: %s" % s)
 
-exit()
 airsim.wait_key('Press any key to takeoff')
 client.takeoffAsync().join()
 

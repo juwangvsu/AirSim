@@ -138,13 +138,15 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
 
     image_transport::ImageTransport image_transporter(nh_private_);
 
+std::cout<<"dgb vehicles "<< (AirSimSettings::singleton().vehicles).size() << std::endl; 
     // iterate over std::map<std::string, std::unique_ptr<VehicleSetting>> vehicles;
     for (const auto& curr_vehicle_elem : AirSimSettings::singleton().vehicles)
     {
         auto& vehicle_setting = curr_vehicle_elem.second;
         auto curr_vehicle_name = curr_vehicle_elem.first;
         set_nans_to_zeros_in_pose(*vehicle_setting);
-       
+	std::cout<<"dgb "<< curr_vehicle_elem.first << std::endl; 
+//std::cout<<"dgb "<< curr_vehicle_elem.second << std::endl; 
         std::unique_ptr<VehicleROS> vehicle_ros = nullptr;
         
         if (airsim_mode_ == AIRSIM_MODE::DRONE)
@@ -192,11 +194,13 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
             car->car_state_pub = nh_private_.advertise<airsim_ros_pkgs::CarState>(curr_vehicle_name + "/car_state", 10);
         }
 
+	std::cout<<"dgb camera"<< (vehicle_setting->cameras).size()<< std::endl; 
         // iterate over camera map std::map<std::string, CameraSetting> .cameras;
         for (auto& curr_camera_elem : vehicle_setting->cameras)
         {
             auto& camera_setting = curr_camera_elem.second;
             auto& curr_camera_name = curr_camera_elem.first;
+	std::cout<<"dgb "<< curr_camera_elem.first << std::endl; 
             // vehicle_setting_vec_.push_back(*vehicle_setting.get());
             set_nans_to_zeros_in_pose(*vehicle_setting, camera_setting);
             append_static_camera_tf(vehicle_ros.get(), curr_camera_name, camera_setting);
@@ -237,11 +241,12 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
 
         // iterate over sensors
         std::vector<SensorPublisher> sensors;
+	std::cout<<" dbg sensor  "<<(vehicle_setting->sensors).size()<<std::endl;
         for (auto& curr_sensor_map : vehicle_setting->sensors)
         {
             auto& sensor_name = curr_sensor_map.first;
             auto& sensor_setting = curr_sensor_map.second;
-
+	std::cout<<" sensor name "<<sensor_name<<std::endl;
             if (sensor_setting->enabled)
             {             
                 SensorPublisher sensor_publisher;

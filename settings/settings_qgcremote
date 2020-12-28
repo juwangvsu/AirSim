@@ -1,0 +1,18 @@
+{
+  "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",    
+    "Vehicles": {
+    "PX4": {
+      "VehicleType": "PX4Multirotor",
+"LocalHostIp": "192.168.86.61",
+"Pixhawk": {
+	"UdpIp": "127.0.0.1",
+	"UdpPort": 14560,
+	"UseSerial": true
+	},
+"QgcHostIp": "192.168.86.95",
+"QgcPort": 14550
+    }
+  }
+}
