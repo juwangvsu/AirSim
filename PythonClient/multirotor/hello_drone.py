@@ -20,6 +20,7 @@ ipaddr             = args.ip
 
 # connect to the AirSim simulator
 client = airsim.MultirotorClient(ip=ipaddr)
+#client = airsim.MultirotorClient(ip=ipaddr, port=12089)
 #client = airsim.MultirotorClient(ip="192.168.86.61")
 client.confirmConnection()
 client.enableApiControl(True)

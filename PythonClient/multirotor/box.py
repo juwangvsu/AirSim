@@ -4,7 +4,7 @@ import airsim
 import sys
 import time
 
-client = airsim.MultirotorClient()
+client = airsim.MultirotorClient(ip="192.168.86.61")
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
@@ -27,17 +27,17 @@ delay = duration * speed
 vx = speed
 vy = 0
 print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy) + ", yaw=90")
-client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 90)).join()
+client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 0)).join()
 time.sleep(delay)
 vx = 0
 vy = speed
 print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy)+ ", yaw=180")
-client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 180)).join()
+client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 0)).join()
 time.sleep(delay)
-vx = -speed
+vx =0# -speed
 vy = 0
 print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy)+ ", yaw=270")
-client.moveByVelocityZAsync(vx, vy, z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 270)).join()
+client.moveByVelocityZAsync(vx, vy, z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 0)).join()
 time.sleep(delay)
 vx = 0
 vy = -speed

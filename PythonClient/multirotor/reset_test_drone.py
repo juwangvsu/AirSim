@@ -4,13 +4,13 @@ import airsim
 import time
 
 # connect to the AirSim simulator
-client = airsim.MultirotorClient()
+client = airsim.MultirotorClient(ip='msi')
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 
 print("fly")
-client.moveToPositionAsync(0, 0, -10, 5).join()
+client.moveToPositionAsync(0, 0, -5, 5).join()
 
 print("reset")
 client.reset()

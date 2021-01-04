@@ -1085,6 +1085,7 @@ ros::Time AirsimROSWrapper::update_state()
 
         // convert airsim drone state to ROS msgs            
           vehicle_ros->curr_odom.header.frame_id = vehicle_ros->vehicle_name;
+	  std::cout<<"odom frameid " << vehicle_ros->curr_odom.header.frame_id << std::endl;
           vehicle_ros->curr_odom.child_frame_id = vehicle_ros->odom_frame_id;
           vehicle_ros->curr_odom.header.stamp = vehicle_time;
 	}

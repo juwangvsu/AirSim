@@ -5,7 +5,7 @@
   "ViewMode": "SpringArmChase",
   "ClockSpeed": 1.0,
   "Vehicles": {
-    "drone_1": {
+    "SimpleFlight": {
       "VehicleType": "SimpleFlight",
       "DefaultVehicleState": "Armed",
       "EnableCollisionPassthrogh": false,
