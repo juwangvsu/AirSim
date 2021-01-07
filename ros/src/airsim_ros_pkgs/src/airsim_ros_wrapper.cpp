@@ -917,7 +917,10 @@ sensor_msgs::Imu AirsimROSWrapper::get_imu_msg_from_airsim(const msr::airlib::Im
 void AirsimROSWrapper::publish_odom_tf(const nav_msgs::Odometry& odom_msg)
 {
     geometry_msgs::TransformStamped odom_tf;
+    ros::Time curr_ros_time = ros::Time::now(); 
     odom_tf.header = odom_msg.header;
+    odom_tf.header.stamp = curr_ros_time; //wang 1/4/20, time is 10s sec off in odom_msg, messing up rviz to display data based on this frame, fixed by using current time
+    //odom_tf.child_frame_id = "odom_frame"; 
     odom_tf.child_frame_id = odom_msg.child_frame_id; 
     odom_tf.transform.translation.x = odom_msg.pose.pose.position.x;
     odom_tf.transform.translation.y = odom_msg.pose.pose.position.y;
@@ -1283,10 +1286,21 @@ void AirsimROSWrapper::set_nans_to_zeros_in_pose(const VehicleSetting& vehicle_s
 
 void AirsimROSWrapper::append_static_vehicle_tf(VehicleROS* vehicle_ros, const VehicleSetting& vehicle_setting)
 {
+	// world_frame_id_ "world_ned"
+	// vehicle_name  "SimpleFlight", equv to frame "odom" in slam
+	// 1/6/21 wang, flip the order of frame_id and child_frame_id so
+	// we have SimpleFlight-> world_ned, that way when slam publish
+	// tf from map->SimpleFlight it will not break the tree
+	// the result is "SimpleFlight" is root of the tree. 
     geometry_msgs::TransformStamped vehicle_tf_msg;
-    vehicle_tf_msg.header.frame_id = world_frame_id_;
+
+    vehicle_tf_msg.header.frame_id = vehicle_ros->vehicle_name; // flip frame
+    //vehicle_tf_msg.header.frame_id = world_frame_id_;
     vehicle_tf_msg.header.stamp = ros::Time::now();
-    vehicle_tf_msg.child_frame_id = vehicle_ros->vehicle_name;
+    vehicle_tf_msg.child_frame_id = world_frame_id_; //flip frame
+    //vehicle_tf_msg.child_frame_id = vehicle_ros->vehicle_name;
+    //
+    //the position might need to be inversed since we flip the frame
     vehicle_tf_msg.transform.translation.x = vehicle_setting.position.x();
     vehicle_tf_msg.transform.translation.y = vehicle_setting.position.y();
     vehicle_tf_msg.transform.translation.z = vehicle_setting.position.z();    
