@@ -47,7 +47,7 @@
         "front_center_custom": {
           "CaptureSettings": [
             {
-              "PublishToRos": 1,
+              "PublishToRos": 0,
               "ImageType": 0,
               "Width": 640,
               "Height": 480,

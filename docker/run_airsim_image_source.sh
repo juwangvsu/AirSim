@@ -36,8 +36,10 @@ done
 # now, let's mount the user directory which points to the unreal binary (UNREAL_BINARY_PATH)
 # set the environment varible SDL_VIDEODRIVER to SDL_VIDEODRIVER_VALUE
 # and tell the docker container to execute UNREAL_BINARY_COMMAND
+#    -v /home/student/data55/AirSim_dockerbuild:/mnt \
+    #-v $(pwd)/settings.json:/home/airsim_user/Documents/AirSim/settings.json \
 nvidia-docker run -it \
-    -v $(pwd)/settings.json:/home/airsim_user/Documents/AirSim/settings.json \
+    -v $(pwd):/mnt/test \
     -e SDL_VIDEODRIVER=$SDL_VIDEODRIVER_VALUE \
     -e SDL_HINT_CUDA_DEVICE='0' \
     --net=host \

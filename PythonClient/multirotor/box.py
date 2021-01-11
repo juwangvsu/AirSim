@@ -3,8 +3,19 @@ import airsim
 
 import sys
 import time
+import argparse
 
-client = airsim.MultirotorClient(ip="192.168.86.61")
+    # Parse configuration files
+parser = argparse.ArgumentParser(description='hello_drone')
+parser.add_argument('--ip', type=str, default='localhost') # ip config
+# parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
+args                = parser.parse_args()
+ipaddr             = args.ip
+
+def printUsage():
+   print("Usage: python box.py --ip ipaddr ")
+
+client = airsim.MultirotorClient(ip=ipaddr)
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)

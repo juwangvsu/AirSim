@@ -14,10 +14,12 @@ import argparse
     # Parse configuration files
 parser = argparse.ArgumentParser(description='hello_drone')
 parser.add_argument('--ip', type=str, default='localhost') # ip config
+parser.add_argument('--camid', type=int, default=1) # ip config
 parser.add_argument('--camtype', type=str, default='depth') # camera type config
 # parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
 args                = parser.parse_args()
 ipaddr             = args.ip
+camid             = args.camid
 
 def printUsage():
    print("Usage: python camera.py --ip ipaddr --type [depth|segmentation|scene]")
@@ -58,12 +60,12 @@ textSize, baseline = cv2.getTextSize("FPS", fontFace, fontScale, thickness)
 print (textSize)
 textOrg = (10, 10 + textSize[1])
 frameCount = 0
-startTime=time.clock()
+startTime=time.time()
 fps = 0
-
+t0=time.time()
 while True:
     # because this method returns std::vector<uint8>, msgpack decides to encode it as a string unfortunately.
-    rawImage = client.simGetImage("0", cameraTypeMap[cameraType])
+    rawImage = client.simGetImage(camid, cameraTypeMap[cameraType])
     if (rawImage == None):
         print("Camera is not returning image, please check airsim for error messages")
         sys.exit(0)
@@ -73,11 +75,13 @@ while True:
         cv2.imshow("Depth", png)
 
     frameCount  = frameCount  + 1
-    endTime=time.clock()
+    endTime=time.time()
+#    print('time since start: ', endTime-t0)
     diff = endTime - startTime
+    t1 = endTime - t0 
     if (diff > 1):
-        fps = frameCount
-        frameCount = 0
+        fps = frameCount/t1
+    #    frameCount = 0
         startTime = endTime
     
     key = cv2.waitKey(1) & 0xFF;
