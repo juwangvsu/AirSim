@@ -15,7 +15,7 @@ def ppl_angles(points):
     global odom_adjust
     print('ppl_angles odom_adjust:', odom_adjust)
     camera_translation_base=[0,0,0]
-    if odom_adjust and False:
+    if odom_adjust: # and False:
         camera_translation_base=odom_adjust_pose()
         print('ppl_angles odom_adjust:', camera_translation_base)
         points = np.array(list(points))-camera_translation_base

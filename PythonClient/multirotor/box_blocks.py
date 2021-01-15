@@ -55,14 +55,22 @@ vx = 0
 vy = 0
 z=-3
 duration =10
-print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy) + ", yaw=90")
-client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 90)).join()
-#time.sleep(delay)
+delay=2
+#print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy) + ", yaw=90")
+#client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 90)).join()
 
-airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
-client.moveToPositionAsync(-10, 10, -10, 5).join()
+time.sleep(delay)
 
-client.hoverAsync().join()
+print('now  move vehicle to (4, 3, -4) at 5 m/s')
+#airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
+client.moveToPositionAsync(4, 3, -4, 1).join()
+
+
+print('now  move vehicle to (4 5 -4) at 5 m/s')
+client.moveToPositionAsync(4, 5, -4, 1).join()
+
+
+#client.hoverAsync().join()
 
 state = client.getMultirotorState()
 print("state: %s" % pprint.pformat(state))

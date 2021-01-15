@@ -39,7 +39,7 @@
   
     <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="$(arg rtabmap_args)">
       <param name="database_path"       type="string" value="$(arg database_path)"/>
-      <param name="frame_id"            type="string" value="drone_1"/>
+      <param name="frame_id"            type="string" value="SimpleFlight"/>
       <param name="subscribe_rgb"   type="bool" value="false"/>
       <param name="subscribe_depth" type="bool" value="false"/>
       <param     if="$(eval model=='waffle')" name="subscribe_rgbd" type="bool" value="true"/>
@@ -73,7 +73,7 @@
     <node if="$(arg rtabmapviz)" pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d $(find rtabmap_ros)/launch/config/rgbd_gui.ini" output="screen">
       <param name="subscribe_scan"   type="bool"   value="true"/>
       <param name="subscribe_odom"   type="bool"   value="true"/>
-      <param name="frame_id"         type="string" value="drone_1"/>
+      <param name="frame_id"         type="string" value="SimpleFlight"/>
       <param name="approx_sync"      type="bool"   value="true"/>
 
       <remap from="odom"            to="/airsim_node/SimpleFlight/odom_local_ned"/>

@@ -1,7 +1,16 @@
 import setup_path 
 import airsim
+import argparse
+import time
+    # Parse configuration files
+parser = argparse.ArgumentParser(description='hello_drone')
+parser.add_argument('--ip', type=str, default='localhost') # ip config
+# parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
+args                = parser.parse_args()
+ipaddr             = args.ip
 
-client = airsim.MultirotorClient(ip="192.168.86.61")
+
+client = airsim.MultirotorClient(ip=ipaddr)
 client.confirmConnection()
 client.enableApiControl(True)
 
