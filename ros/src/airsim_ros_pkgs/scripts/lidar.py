@@ -102,7 +102,7 @@ def convert_to_scan(ppl, p_angles, p_segindex, header, shiftscan=False):
 
     scanmsg = LaserScan()
     #scanmsg.header.frame_id='SimpleFlight/odom_local_ned'
-    scanmsg.header.frame_id='SimpleFlight'
+    scanmsg.header.frame_id='SimpleFlight/odom_local_ned'
     scanmsg.header.stamp= header.stamp 
     #scanmsg.header.stamp= rospy.get_rostime()
     #scanmsg.header.seq=header.seq

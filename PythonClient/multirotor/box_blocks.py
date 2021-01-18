@@ -63,11 +63,12 @@ time.sleep(delay)
 
 print('now  move vehicle to (4, 3, -4) at 5 m/s')
 #airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
-client.moveToPositionAsync(4, 3, -4, 1).join()
+client.moveToPositionAsync(4, 3, -1, 1).join()
 
 
 print('now  move vehicle to (4 5 -4) at 5 m/s')
-client.moveToPositionAsync(4, 5, -4, 1).join()
+client.moveToPositionAsync(4, 5, -1, 1).join()
+client.moveToPositionAsync(8, 5, -1, 1).join()
 
 
 #client.hoverAsync().join()
