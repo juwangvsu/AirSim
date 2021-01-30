@@ -29,21 +29,18 @@ state = client.getMultirotorState()
 s = pprint.pformat(state)
 print("state: %s" % s)
 
-imu_data = client.getImuData()
-s = pprint.pformat(imu_data)
-print("imu_data: %s" % s)
+#imu_data = client.getImuData()
+#s = pprint.pformat(imu_data)
+#print("imu_data: %s" % s)
 
-barometer_data = client.getBarometerData()
-s = pprint.pformat(barometer_data)
-print("barometer_data: %s" % s)
+#barometer_data = client.getBarometerData()
+#s = pprint.pformat(barometer_data)
+#print("barometer_data: %s" % s)
 
-magnetometer_data = client.getMagnetometerData()
-s = pprint.pformat(magnetometer_data)
-print("magnetometer_data: %s" % s)
 
-gps_data = client.getGpsData()
-s = pprint.pformat(gps_data)
-print("gps_data: %s" % s)
+#gps_data = client.getGpsData()
+#s = pprint.pformat(gps_data)
+#print("gps_data: %s" % s)
 
 airsim.wait_key('Press any key to takeoff')
 client.takeoffAsync().join()
@@ -69,6 +66,7 @@ client.moveToPositionAsync(4, 3, -1, 1).join()
 print('now  move vehicle to (4 5 -4) at 5 m/s')
 client.moveToPositionAsync(4, 5, -1, 1).join()
 client.moveToPositionAsync(8, 5, -1, 1).join()
+client.moveToPositionAsync(18, 5, -1, 1).join()
 
 
 #client.hoverAsync().join()

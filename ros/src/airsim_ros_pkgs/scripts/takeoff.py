@@ -1,8 +1,20 @@
 #!/usr/bin/env python
 import setup_path 
 import airsim
+#import rospy 
+import argparse
+import sys
+# argparse not working so far. right now the script is not using any rospy stuff
 
-client = airsim.MultirotorClient(ip="192.168.86.61")
+#args = sys.argv
+#arg_fmt = argparse.RawDescriptionHelpFormatter
+#parser = argparse.ArgumentParser(formatter_class=arg_fmt,
+#                                 description="lidar arg parser")
+#parser.add_argument('--ip', type=str, default='localhost')
+#args = parser.parse_args(rospy.myargv()[1:])
+#ipaddr = args.ip
+ipaddr = "asus1" 
+client = airsim.MultirotorClient(ip=ipaddr)
 client.confirmConnection()
 client.enableApiControl(True)
 

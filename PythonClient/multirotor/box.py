@@ -28,7 +28,7 @@ print("Flying a small square box using moveByVelocityZ")
 z = -7
 
 # Fly given velocity vector for 5 seconds
-duration = 5
+duration = 10
 speed = 1
 delay = duration * speed
 
@@ -43,7 +43,7 @@ time.sleep(delay)
 vx = 0
 vy = speed
 print("moving by velocity vx=" + str(vx) + ", vy=" + str(vy)+ ", yaw=180")
-client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 0)).join()
+client.moveByVelocityZAsync(vx,vy,z,duration, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 90)).join()
 time.sleep(delay)
 vx =0# -speed
 vy = 0

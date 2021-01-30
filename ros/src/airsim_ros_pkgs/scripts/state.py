@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import setup_path
 import airsim
 import pprint

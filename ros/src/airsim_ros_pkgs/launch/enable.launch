@@ -1,0 +1,6 @@
+<launch>
+<!-- call state.py to enable api-->
+<node pkg="airsim_ros_pkgs" type="py3sh.sh" name="airsimstate" output="screen"/>
+
+</launch>
+

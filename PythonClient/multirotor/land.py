@@ -1,7 +1,8 @@
 import setup_path 
 import airsim
 
-client = airsim.MultirotorClient(ip="192.168.86.61")
+client = airsim.MultirotorClient(ip="asus1")
+#client = airsim.MultirotorClient(ip="192.168.86.61")
 client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
