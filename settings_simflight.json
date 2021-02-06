@@ -1,0 +1,15 @@
+{
+  "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",    
+    "Vehicles": {
+        "SimpleFlight": {
+            "VehicleType": "SimpleFlight",
+			 "AllowAPIAlways": true,
+            "RC": {
+              "RemoteControlID": 0,
+			  "AllowAPIWhenDisconnected": true
+            }
+        }
+    }
+}

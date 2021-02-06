@@ -116,6 +116,7 @@ void AirsimROSWrapper::initialize_ros()
     // todo enforce dynamics constraints in this node as well?
     // nh_.getParam("max_vert_vel_", max_vert_vel_);
     // nh_.getParam("max_horz_vel", max_horz_vel_)
+    nh_private_.getParam("debug_point_cloud", debug_point_cloud_);
 
     create_ros_pubs_from_settings_json();
     airsim_control_update_timer_ = nh_private_.createTimer(ros::Duration(update_airsim_control_every_n_sec), &AirsimROSWrapper::drone_state_timer_cb, this);
@@ -302,6 +303,7 @@ std::cout<<"dgb vehicles "<< (AirSimSettings::singleton().vehicles).size() << st
             }
         }
 
+        depthimg_cloud_pub = nh_private_.advertise<sensor_msgs::PointCloud2>(curr_vehicle_name + "/depthimg_pc2", 10);
         // we want fast access to the lidar sensors for callback handling, sort them out now
         auto isLidar = std::function<bool(const SensorPublisher& pub)>([](const SensorPublisher& pub)
         {
@@ -1397,6 +1399,14 @@ void AirsimROSWrapper::img_response_timer_cb(const ros::TimerEvent& event)
         int image_response_idx = 0;
         for (const auto& airsim_img_request_vehicle_name_pair : airsim_img_request_vehicle_name_pair_vec_)
         {
+		std::vector<ImageRequest> imgreq = airsim_img_request_vehicle_name_pair.first;
+		for (int i=0; i < imgreq.size(); i++){
+			std::cout<<"imgreq: size, name, type, as float " << imgreq.size() << " " << imgreq[i].camera_name << " "<< static_cast<int>(imgreq[i].image_type) << " " << imgreq[i].pixels_as_float<< std::endl; 
+//imgreq: size name, type, as float 2 front_left_custom 0 0
+//imgreq: size name, type, as float 2 front_left_custom 1 1
+//type 1 is depthplanner, as float true
+		//airsim_img_request_vehicle_name_pair.second;
+		}
             const std::vector<ImageResponse>& img_response = airsim_client_images_.simGetImages(airsim_img_request_vehicle_name_pair.first, airsim_img_request_vehicle_name_pair.second);
 
             if (img_response.size() == airsim_img_request_vehicle_name_pair.first.size()) 
@@ -1468,7 +1478,167 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_img_msg_from_response(const ImageRes
     img_msg_ptr->is_bigendian = 0;
     return img_msg_ptr;
 }
+/* wang: convert depth image to point cloud2 
+ * and publish it
+ * to calculate 3D X,Y,Z from u,v,z of depth image, 
+ * we only need FOV, and absolute f in physical unit not required.
+ * also image width and height must be the same since we assume FOV for
+ * both vertical and horizontal.
+ * u, v : the pixel coord
+ * x, y:  the point's physical unit on sensor area
+ * z=Z
+ * f: focal length in physical unit
+ * w=h the image sensor physical unit, 
+ * W=H the image dimension in pixel
+ * we have tan(fov/2)=h/2f=w/2f
+ * x= (u-W/2)/(W/2) * w/2
+ * since x/X = f/Z, so 
+ * X = x * Z/f = (u-W/2)/(W/2) *w/2 * Z/f = (u-W/2)/(W/2) *Z *  tan(fov/2) 
+ * for fov=90 deg, tan(fov/2)=1
+ * 
+ * Y is the same way
+ * */
+sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name) const
+{
 
+	float y_normalized_camplan, y_cam;
+	float x_normalized_camplan, x_cam;
+	float z_cam;
+	int height, width;
+	std::cout<<"pub_point_cloud_depthimg "<<depth_img.at<float>(1,1) <<std::endl;
+   	height = depth_img.rows;
+   	width = depth_img.cols;
+	 vector<float> points;
+	for(int y = 0; y < depth_img.rows; y++)
+	{
+    		const float* Mi = depth_img.ptr<float>(y);
+    		for(int x = 0; x < depth_img.cols; x++){
+			z_cam= depth_img.at<float>(y,x);
+          		y_normalized_camplan = (float (y-height/2))/(height/2);
+	         	y_cam = y_normalized_camplan * z_cam;
+          		x_normalized_camplan = (float (x-width/2))/(width/2);
+          		x_cam = x_normalized_camplan * z_cam;
+			points.push_back(z_cam);
+                points.push_back(x_cam);
+                points.push_back(y_cam);
+		}
+	}
+	int n_points = points.size();
+	    // Create a PointCloud2
+    sensor_msgs::PointCloud2 cloud_msg;
+    sensor_msgs::PointCloud2Modifier modifier(cloud_msg);
+    modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32,
+                                  "y", 1, sensor_msgs::PointField::FLOAT32,
+                                  "z", 1, sensor_msgs::PointField::FLOAT32);
+//    modifier.setPointCloud2FieldsByString(1, "xyz");
+    modifier.resize(n_points/3);
+
+    sensor_msgs::PointCloud2Iterator<float> iter_x(cloud_msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(cloud_msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(cloud_msg, "z");
+
+    cloud_msg.height = 1;
+    cloud_msg.width = n_points/3;
+    cloud_msg.header.frame_id ="front_left_custom_body/static";// vehicle_name;
+//cloud_msg.header.seq = msg->header.seq;
+    cloud_msg.header.stamp = ros::Time::now();
+
+    for(size_t i=0; i<n_points/3; ++i, ++iter_x, ++iter_y, ++iter_z){
+        *iter_x = points[3*i+0];
+        *iter_y = points[3*i+1];
+        *iter_z = points[3*i+2];
+
+//        cerr << *iter_x << " " << *iter_y << " " << *iter_z << endl;
+    }
+
+    depthimg_cloud_pub.publish(cloud_msg);
+
+
+    if (isENU_)
+    {
+        try
+        {
+            sensor_msgs::PointCloud2 lidar_msg_enu;
+            auto transformStampedENU = tf_buffer_.lookupTransform(AIRSIM_FRAME_ID, vehicle_name, ros::Time(0), ros::Duration(1));
+            tf2::doTransform(cloud_msg, lidar_msg_enu, transformStampedENU);
+
+            lidar_msg_enu.header.stamp = cloud_msg.header.stamp;
+            lidar_msg_enu.header.frame_id = cloud_msg.header.frame_id;
+
+            cloud_msg = std::move(lidar_msg_enu);
+        }
+        catch (tf2::TransformException &ex)
+        {
+            ROS_WARN("%s", ex.what());
+            ros::Duration(1.0).sleep();
+        }
+    }
+
+    return cloud_msg;
+}
+/*
+def savePointCloud(fileName, image,fov):
+   color = (0,255,0)
+   rgb = "%d %d %d" % color
+   f = open(fileName, "w")
+   print('image np array shape: ', image.shape)
+   height = image.shape[0]
+   width = image.shape[1]
+   for y in range(image.shape[0]):
+     for x in range(image.shape[1]):
+        z_cam = image[y,x]
+        if (math.isinf(z_cam) or math.isnan(z_cam)):
+          # skip it
+          None
+        else:
+          y_normalized_camplan = (y-height/2)/(height/2)
+          y_cam = y_normalized_camplan * z_cam
+          x_normalized_camplan = (x-width/2)/(width/2)
+          x_cam = x_normalized_camplan * z_cam
+	     f.write("%f %f %f %s\n" % (z_cam, x_cam, y_cam, rgb))#
+	  */
+void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img){
+	float y_normalized_camplan, y_cam;
+	float x_normalized_camplan, x_cam;
+	float z_cam;
+	int height, width;
+	std::cout<<"save_point_cloud "<<depth_img.at<float>(1,1) <<std::endl;
+    	std::ofstream fin(filename.c_str());
+   	height = depth_img.rows;
+   	width = depth_img.cols;
+	for(int y = 0; y < depth_img.rows; y++)
+	{
+    		const float* Mi = depth_img.ptr<float>(y);
+    		for(int x = 0; x < depth_img.cols; x++){
+			z_cam= depth_img.at<float>(y,x);
+			//std::cout<<"dbg (y-height/2)" <<" " <<y <<" " << (y-height/2)/(height/2);
+          		y_normalized_camplan = (float (y-height/2))/(height/2);
+	         	y_cam = y_normalized_camplan * z_cam;
+          		x_normalized_camplan = (float (x-width/2))/(width/2);
+          		x_cam = x_normalized_camplan * z_cam;
+			//std::cout<<"dbg (x-height/2)" <<" " <<x <<" " << (x-width/2)/(width/2)<< " "<< x_cam << " " <<width <<"\n";
+	     		fin<< z_cam <<" "<< x_cam <<" " << y_cam<<" 0 255 0\n";
+		}
+	}
+}
+void AirsimROSWrapper::save_depth_img(std::string filename, cv::Mat depth_img)
+{
+	std::cout<<"save_depth_img "<<depth_img.at<float>(1,1) <<std::endl;
+	float sum=0;
+    	std::ofstream fin(filename.c_str());
+	for(int i = 0; i < depth_img.rows; i++)
+	{
+    		const float* Mi = depth_img.ptr<float>(i);
+    		for(int j = 0; j < depth_img.cols; j++){
+        		sum += Mi[j];
+			fin << depth_img.at<float>(i,j)<<" ";
+        		//sum += std::max(Mi[j], 0.);
+		}
+		fin << "\n";
+	}
+//	fin << depth_img.at<float>(1,1);
+   //         mat.at<float>(row, col) = img_response.image_data_float[row * img_width + col];
+}
 sensor_msgs::ImagePtr AirsimROSWrapper::get_depth_img_msg_from_response(const ImageResponse& img_response,
                                                                         const ros::Time curr_ros_time,
                                                                         const std::string frame_id)
@@ -1476,6 +1646,12 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_depth_img_msg_from_response(const Im
     // todo using img_response.image_data_float direclty as done get_img_msg_from_response() throws an error, 
     // hence the dependency on opencv and cv_bridge. however, this is an extremely fast op, so no big deal.
     cv::Mat depth_img = manual_decode_depth(img_response);
+    std::cout<<"debug_point_cloud " << debug_point_cloud_<<std::endl;
+    get_cloud_msg_from_depthimg(depth_img, "SimpleFlight");
+    if (debug_point_cloud_){
+    	save_depth_img("depth_image.txt", depth_img);
+    	save_point_cloud("depth_cloud.asc", depth_img);
+    }
     sensor_msgs::ImagePtr depth_img_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
     depth_img_msg->header.stamp = airsim_timestamp_to_ros(img_response.time_stamp);
     depth_img_msg->header.frame_id = frame_id;
@@ -1523,6 +1699,7 @@ void AirsimROSWrapper::process_and_publish_img_response(const std::vector<ImageR
         cam_info_pub_vec_[img_response_idx_internal].publish(camera_info_msg_vec_[img_response_idx_internal]);
 
         // DepthPlanner / DepthPerspective / DepthVis / DisparityNormalized
+	// wang to do: also publish as point cloud 2, see hello_drone_2.py
         if (curr_img_response.pixels_as_float)
         {
             image_pub_vec_[img_response_idx_internal].publish(get_depth_img_msg_from_response(curr_img_response, 

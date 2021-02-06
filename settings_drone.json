@@ -43,9 +43,9 @@
 				"HorizontalFOVEnd": 180,
 				          "X": 0,
           				"Y": 0,
-				          "Z": -1.0,
+				          "Z": -4,
 
-          "DrawDebugPoints": false 
+          "DrawDebugPoints": true
         }
       },
       "Cameras": {
@@ -54,8 +54,8 @@
             {
               "PublishToRos": 1,
               "ImageType": 0,
-              "Width": 256,
-              "Height": 144,
+              "Width": 640,
+              "Height": 480,
               "FOV_Degrees": 27,
               "DepthOfFieldFstop": 2.8,
               "DepthOfFieldFocalDistance": 200.0, 
@@ -71,21 +71,21 @@
             {
               "PublishToRos": 1,
               "ImageType": 0,
-              "Width": 256,
-              "Height": 256,
+              "Width": 672,
+              "Height": 376,
               "FOV_Degrees": 90,
               "TargetGamma": 1.5
             }, 
             {
               "PublishToRos": 1,
               "ImageType": 1,
-              "Width": 256,
-              "Height": 256,
+              "Width": 672,
+              "Height": 376,
               "FOV_Degrees": 90,
               "TargetGamma": 1.5
             }
           ],
-          "X": 0.30, "Y": 0.0, "Z": 0.0,
+          "X": 0.50, "Y": -0.06, "Z": 0.10,
           "Pitch": 0.0, "Roll": 0.0, "Yaw": 0.0
         },
         "front_right_custom": {
@@ -93,13 +93,13 @@
             {
               "PublishToRos": 1,
               "ImageType": 0,
-              "Width": 256,
-              "Height": 144,
+              "Width": 672,
+              "Height": 376,
               "FOV_Degrees": 90,
               "TargetGamma": 1.5
             }
           ],
-          "X": 0.50, "Y": 0.0, "Z": 0.0,
+          "X": 0.50, "Y": 0.06, "Z": 0.10,
           "Pitch": 0.0, "Roll": 0.0, "Yaw": 0.0
         }
       },
@@ -109,7 +109,7 @@
   },
   "SubWindows": [
     {"WindowID": 0, "ImageType": 0, "CameraName": "front_left_custom", "Visible": true},
-    {"WindowID": 1, "ImageType": 1, "CameraName": "front_left_custom", "Visible": true},
+    {"WindowID": 1, "ImageType": 0, "CameraName": "front_center_custom", "Visible": false},
     {"WindowID": 2, "ImageType": 0, "CameraName": "front_right_custom", "Visible": true}
   ]
 }

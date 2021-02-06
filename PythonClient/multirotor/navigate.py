@@ -11,8 +11,8 @@ import math
 import sys
 import numpy as np
 
-client = airsim.MultirotorClient()
-client.confirmConnection()
+client = airsim.MultirotorClient(ip='asus1')
+#client.confirmConnection()
 client.enableApiControl(True)
 client.armDisarm(True)
 client.takeoffAsync().join()
