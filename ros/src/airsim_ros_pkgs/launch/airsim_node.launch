@@ -5,10 +5,11 @@
 	<!-- 
 	<arg name="host" default="asus1" />
 	-->
-<arg name="host" default="localhost" />
+<arg name="host" default="msi" />
 
 	<node name="airsim_node" pkg="airsim_ros_pkgs" type="airsim_node" output="$(arg output)">
 		<param name="/debug_point_cloud" type="bool" value="true" /> 
+		<param name="/max_range" type="double" value="20" /> 
 		<param name="is_vulkan" type="bool" value="false" /> 
 		<!-- ROS timer rates. Note that timer callback will be processed at maximum possible rate, upperbounded by the following ROS params -->
 		<param name="update_airsim_img_response_every_n_sec" type="double" value="0.02" /> 
@@ -22,6 +23,6 @@
 	<include file="$(find airsim_ros_pkgs)/launch/static_transforms.launch"/>
 
 <!-- call state.py to enable api-->
-<node pkg="airsim_ros_pkgs" type="py3sh.sh" name="airsimstate" />
+<node pkg="airsim_ros_pkgs" type="py3sh.sh" name="airsimstate" args="$(arg host)" />
 
 </launch>

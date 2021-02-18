@@ -117,6 +117,7 @@ void AirsimROSWrapper::initialize_ros()
     // nh_.getParam("max_vert_vel_", max_vert_vel_);
     // nh_.getParam("max_horz_vel", max_horz_vel_)
     nh_private_.getParam("debug_point_cloud", debug_point_cloud_);
+    nh_private_.getParam("max_range", max_range_);
 
     create_ros_pubs_from_settings_json();
     airsim_control_update_timer_ = nh_private_.createTimer(ros::Duration(update_airsim_control_every_n_sec), &AirsimROSWrapper::drone_state_timer_cb, this);
@@ -1480,6 +1481,8 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_img_msg_from_response(const ImageRes
 }
 /* wang: convert depth image to point cloud2 
  * and publish it
+ * clip at max_range (if >0 such as 30) to make it easy for moveit octomap
+ *
  * to calculate 3D X,Y,Z from u,v,z of depth image, 
  * we only need FOV, and absolute f in physical unit not required.
  * also image width and height must be the same since we assume FOV for
@@ -1498,7 +1501,7 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_img_msg_from_response(const ImageRes
  * 
  * Y is the same way
  * */
-sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name) const
+sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range) const
 {
 
 	float y_normalized_camplan, y_cam;
@@ -1513,7 +1516,11 @@ sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv
 	{
     		const float* Mi = depth_img.ptr<float>(y);
     		for(int x = 0; x < depth_img.cols; x++){
-			z_cam= depth_img.at<float>(y,x);
+			if (max_range>0){
+				z_cam= std::min(max_range, depth_img.at<float>(y,x));
+			}else{
+				z_cam= depth_img.at<float>(y,x);
+			}
           		y_normalized_camplan = (float (y-height/2))/(height/2);
 	         	y_cam = y_normalized_camplan * z_cam;
           		x_normalized_camplan = (float (x-width/2))/(width/2);
@@ -1597,7 +1604,7 @@ def savePointCloud(fileName, image,fov):
           x_cam = x_normalized_camplan * z_cam
 	     f.write("%f %f %f %s\n" % (z_cam, x_cam, y_cam, rgb))#
 	  */
-void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img){
+void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img, float max_range){
 	float y_normalized_camplan, y_cam;
 	float x_normalized_camplan, x_cam;
 	float z_cam;
@@ -1610,7 +1617,11 @@ void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img)
 	{
     		const float* Mi = depth_img.ptr<float>(y);
     		for(int x = 0; x < depth_img.cols; x++){
-			z_cam= depth_img.at<float>(y,x);
+			if (max_range>0){
+				z_cam= std::min(max_range, depth_img.at<float>(y,x));
+			}else{
+				z_cam= depth_img.at<float>(y,x);
+			}
 			//std::cout<<"dbg (y-height/2)" <<" " <<y <<" " << (y-height/2)/(height/2);
           		y_normalized_camplan = (float (y-height/2))/(height/2);
 	         	y_cam = y_normalized_camplan * z_cam;
@@ -1621,17 +1632,23 @@ void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img)
 		}
 	}
 }
-void AirsimROSWrapper::save_depth_img(std::string filename, cv::Mat depth_img)
+void AirsimROSWrapper::save_depth_img(std::string filename, cv::Mat depth_img, float max_range)
 {
 	std::cout<<"save_depth_img "<<depth_img.at<float>(1,1) <<std::endl;
 	float sum=0;
     	std::ofstream fin(filename.c_str());
+	float z_cam;
 	for(int i = 0; i < depth_img.rows; i++)
 	{
     		const float* Mi = depth_img.ptr<float>(i);
     		for(int j = 0; j < depth_img.cols; j++){
         		sum += Mi[j];
-			fin << depth_img.at<float>(i,j)<<" ";
+			if (max_range>0){
+				z_cam= std::min(max_range, depth_img.at<float>(i,j));
+			}else{
+				z_cam= depth_img.at<float>(i,j);
+			}
+			fin << z_cam<<" ";
         		//sum += std::max(Mi[j], 0.);
 		}
 		fin << "\n";
@@ -1647,10 +1664,11 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_depth_img_msg_from_response(const Im
     // hence the dependency on opencv and cv_bridge. however, this is an extremely fast op, so no big deal.
     cv::Mat depth_img = manual_decode_depth(img_response);
     std::cout<<"debug_point_cloud " << debug_point_cloud_<<std::endl;
-    get_cloud_msg_from_depthimg(depth_img, "SimpleFlight");
+    std::cout<<"max_range " << max_range_<<std::endl;
+    get_cloud_msg_from_depthimg(depth_img, "SimpleFlight", max_range_);
     if (debug_point_cloud_){
-    	save_depth_img("depth_image.txt", depth_img);
-    	save_point_cloud("depth_cloud.asc", depth_img);
+    	save_depth_img("depth_image.txt", depth_img, max_range_);
+    	save_point_cloud("depth_cloud.asc", depth_img, max_range_);
     }
     sensor_msgs::ImagePtr depth_img_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
     depth_img_msg->header.stamp = airsim_timestamp_to_ros(img_response.time_stamp);

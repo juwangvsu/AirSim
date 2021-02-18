@@ -9,7 +9,7 @@ def print_state():
     return state
 
 
-client = airsim.MultirotorClient(ip="asus1")
+client = airsim.MultirotorClient(ip="msi")
 client.confirmConnection()
 state = print_state()
 client.enableApiControl(True)

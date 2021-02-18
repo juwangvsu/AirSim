@@ -259,8 +259,8 @@ private:
     /// camera helper methods
     sensor_msgs::CameraInfo generate_cam_info(const std::string& camera_name, const CameraSetting& camera_setting, const CaptureSetting& capture_setting) const;
     cv::Mat manual_decode_depth(const ImageResponse& img_response) const;
-    void save_depth_img(std::string filename, cv::Mat depth_img);
-    void save_point_cloud(std::string filename, cv::Mat depth_img);
+    void save_depth_img(std::string filename, cv::Mat depth_img, float max_range);
+    void save_point_cloud(std::string filename, cv::Mat depth_img, float max_range);
 
 
     sensor_msgs::ImagePtr get_img_msg_from_response(const ImageResponse& img_response, const ros::Time curr_ros_time, const std::string frame_id);
@@ -291,7 +291,7 @@ private:
     airsim_ros_pkgs::Altimeter get_altimeter_msg_from_airsim(const msr::airlib::BarometerBase::Output& alt_data) const;
     sensor_msgs::Range get_range_from_airsim(const msr::airlib::DistanceSensorData& dist_data) const;
     sensor_msgs::PointCloud2 get_lidar_msg_from_airsim(const msr::airlib::LidarData& lidar_data, const std::string& vehicle_name) const;
-    sensor_msgs::PointCloud2 get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name) const;
+    sensor_msgs::PointCloud2 get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range) const;
     sensor_msgs::NavSatFix get_gps_msg_from_airsim(const msr::airlib::GpsBase::Output& gps_data) const;
     sensor_msgs::MagneticField get_mag_msg_from_airsim(const msr::airlib::MagnetometerBase::Output& mag_data) const;
     airsim_ros_pkgs::Environment get_environment_msg_from_airsim(const msr::airlib::Environment::State& env_data) const;
@@ -331,6 +331,7 @@ private:
 
     bool is_vulkan_; // rosparam obtained from launch file. If vulkan is being used, we BGR encoding instead of RGB
     bool debug_point_cloud_; // rosparam obtained from launch file. If set true, save depth image to point cloud file at ~/.ros/
+    float max_range_; // rosparam obtained from launch file. If set true, save depth image to point cloud file at ~/.ros/
 
     std::string host_ip_;
     std::unique_ptr<msr::airlib::RpcLibClientBase> airsim_client_ = nullptr;

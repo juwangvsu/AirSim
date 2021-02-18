@@ -28,15 +28,29 @@ client = airsim.MultirotorClient(ip=ipaddr)
 #client.confirmConnection()
 #client.enableApiControl(True)
 #client.armDisarm(True)
+state = client.getMultirotorState()
+s = pprint.pformat(state)
+print("state: %s" % s)
 
+
+magnetometer_data = client.getMagnetometerData()
+s = pprint.pformat(magnetometer_data)
+print("magnetometer_data: %s" % s)
+
+gps_data = client.getGpsData()
+s = pprint.pformat(gps_data)
+print("gps_data: %s" % s)
+
+#airsim.wait_key('Press any key to takeoff')
+client.takeoffAsync().join()
 
 state = client.getMultirotorState()
 print("state: %s" % pprint.pformat(state))
-
+#client.moveByAngleZAsync(pitch=0, roll=0, z, 90 , 2).join()
 print("yaw ", yaw)
 client.rotateToYawAsync(yaw=yaw, margin = 5).join()
 
-#airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
+airsim.wait_key('Press any key to move vehicle to (-10, 10, -10) at 5 m/s')
 print("xyz ", args.xyz.split(','))
 x,y,z = args.xyz.split(',')
 
@@ -45,4 +59,6 @@ client.moveToPositionAsync(float(x), float(y), float(z),1).join()
 
 #client.hoverAsync().join()
 
+state = client.getMultirotorState()
+print("state: %s" % pprint.pformat(state))
 
