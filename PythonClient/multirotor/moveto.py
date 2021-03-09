@@ -20,7 +20,7 @@ parser.add_argument('--yaw', type=str, default='0') # ip config
 args                = parser.parse_args()
 ipaddr             = args.ip
 yaw             = float(args.yaw)
-
+print("args: ", args.ip, args.xyz, args.yaw)
 # connect to the AirSim simulator
 client = airsim.MultirotorClient(ip=ipaddr)
 #client = airsim.MultirotorClient(ip=ipaddr, port=12089)
@@ -29,7 +29,7 @@ client = airsim.MultirotorClient(ip=ipaddr)
 #client.enableApiControl(True)
 #client.armDisarm(True)
 
-
+print('python moveto.py --ip asus1 --xyz " -2,-3,-2"')
 state = client.getMultirotorState()
 print("state: %s" % pprint.pformat(state))
 

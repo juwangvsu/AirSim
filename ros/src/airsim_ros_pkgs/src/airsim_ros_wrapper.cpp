@@ -105,6 +105,8 @@ void AirsimROSWrapper::initialize_ros()
     // ros params
     double update_airsim_control_every_n_sec;
     nh_private_.getParam("is_vulkan", is_vulkan_);
+    nh_private_.getParam("clip_floor", clip_floor_);
+    nh_private_.getParam("floor_threshold", floor_threshold_);
     nh_private_.getParam("update_airsim_control_every_n_sec", update_airsim_control_every_n_sec);
     nh_private_.getParam("publish_clock", publish_clock_);
     nh_private_.param("world_frame_id", world_frame_id_, world_frame_id_);
@@ -181,6 +183,8 @@ std::cout<<"dgb vehicles "<< (AirSimSettings::singleton().vehicles).size() << st
                 boost::bind(&AirsimROSWrapper::vel_cmd_body_frame_cb, this, _1, vehicle_ros->vehicle_name)); // todo ros::TransportHints().tcpNoDelay();
             drone->vel_cmd_world_frame_sub = nh_private_.subscribe<airsim_ros_pkgs::VelCmd>(curr_vehicle_name + "/vel_cmd_world_frame", 1, 
                 boost::bind(&AirsimROSWrapper::vel_cmd_world_frame_cb, this, _1, vehicle_ros->vehicle_name));
+            drone->pose_cmd_world_frame_sub = nh_private_.subscribe<geometry_msgs::Pose>(curr_vehicle_name + "/pose_cmd_world_frame", 1, 
+                boost::bind(&AirsimROSWrapper::pose_cmd_world_frame_cb, this, _1, vehicle_ros->vehicle_name)); // todo ros::TransportHints().tcpNoDelay();
 
             drone->takeoff_srvr = nh_private_.advertiseService<airsim_ros_pkgs::Takeoff::Request, airsim_ros_pkgs::Takeoff::Response>(curr_vehicle_name + "/takeoff", 
                 boost::bind(&AirsimROSWrapper::takeoff_srv_cb, this, _1, _2, vehicle_ros->vehicle_name) );
@@ -503,6 +507,15 @@ msr::airlib::Pose AirsimROSWrapper::get_airlib_pose(const float& x, const float&
     return msr::airlib::Pose(msr::airlib::Vector3r(x, y, z), airlib_quat);
 }
 
+void AirsimROSWrapper::pose_cmd_world_frame_cb(const geometry_msgs::Pose::ConstPtr& msg, const std::string& vehicle_name)
+{
+	std::cout<<"get pose cmd " << *msg <<std::endl;
+    std::lock_guard<std::mutex> guard(drone_control_mutex_);
+    auto drone = static_cast<MultiRotorROS*>(vehicle_name_ptr_map_[vehicle_name].get());
+    drone->has_pose_cmd = true;
+    drone->pose_cmd = *msg;
+}
+
 // void AirsimROSWrapper::vel_cmd_body_frame_cb(const airsim_ros_pkgs::VelCmd& msg, const std::string& vehicle_name)
 void AirsimROSWrapper::vel_cmd_body_frame_cb(const airsim_ros_pkgs::VelCmd::ConstPtr& msg, const std::string& vehicle_name)
 {
@@ -717,10 +730,12 @@ nav_msgs::Odometry AirsimROSWrapper::get_odom_msg_from_car_state(const msr::airl
     return odom_msg;
 }
 
-nav_msgs::Odometry AirsimROSWrapper::get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) const
+nav_msgs::Odometry AirsimROSWrapper::get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) 
 {
     nav_msgs::Odometry odom_msg;
-
+    curr_odom_ros_time = ros::Time::now();
+    curr_odom_airsim_time = drone_state.timestamp;
+    //std::cout <<" ros curr times/airsim state time "<< curr_odom_ros_time <<" " << airsim_timestamp_to_ros(curr_odom_airsim_time)<<std::endl;
     odom_msg.pose.pose.position.x = drone_state.getPosition().x();
     odom_msg.pose.pose.position.y = drone_state.getPosition().y();
     odom_msg.pose.pose.position.z = drone_state.getPosition().z();
@@ -1038,7 +1053,7 @@ ros::Time AirsimROSWrapper::update_state()
 	if (vehicle_ros->vehicle_name=="SimpleFlight")
 	{
 
-	  std::cout<< "simGetGroundTruthEnvironment " << vehicle_ros->vehicle_name << std::endl;
+	  //std::cout<< "simGetGroundTruthEnvironment " << vehicle_ros->vehicle_name << std::endl;
           auto env_data = airsim_client_->simGetGroundTruthEnvironment(vehicle_ros->vehicle_name);
 
           if (airsim_mode_ == AIRSIM_MODE::DRONE)
@@ -1091,7 +1106,7 @@ ros::Time AirsimROSWrapper::update_state()
 
         // convert airsim drone state to ROS msgs            
           vehicle_ros->curr_odom.header.frame_id = vehicle_ros->vehicle_name;
-	  std::cout<<"odom frameid " << vehicle_ros->curr_odom.header.frame_id << std::endl;
+	  //std::cout<<"odom frameid " << vehicle_ros->curr_odom.header.frame_id << std::endl;
           vehicle_ros->curr_odom.child_frame_id = vehicle_ros->odom_frame_id;
           vehicle_ros->curr_odom.header.stamp = vehicle_time;
 	}
@@ -1197,6 +1212,17 @@ void AirsimROSWrapper::update_commands()
                     msr::airlib::DrivetrainType::MaxDegreeOfFreedom, drone->vel_cmd.yaw_mode, drone->vehicle_name);
             }
             drone->has_vel_cmd = false;
+            if (drone->has_pose_cmd)
+            {
+		std::cout<<" execute pose_cmd " <<drone->pose_cmd <<std::endl;
+
+                std::lock_guard<std::mutex> guard(drone_control_mutex_);
+                static_cast<msr::airlib::MultirotorRpcLibClient*>(airsim_client_.get())->moveToPositionAsync(drone->pose_cmd.position.x, drone->pose_cmd.position.y, drone->pose_cmd.position.z, 2, 5,  
+                    msr::airlib::DrivetrainType::MaxDegreeOfFreedom, drone->pose_yaw_mode, 1,1, drone->vehicle_name);
+		// vel 2, duration 5 seconds. not a good idea to run long time, or 0 second.
+//		moveToPositionAsync(local_point.x(), local_point.y(), local_point.z(), velocity, 0, DrivetrainType::MaxDegreeOfFreedom, YawMode(false, yaw), lookahead, adaptive_lookahead);
+            }
+            drone->has_pose_cmd = false;
         }
         else
         {
@@ -1402,7 +1428,7 @@ void AirsimROSWrapper::img_response_timer_cb(const ros::TimerEvent& event)
         {
 		std::vector<ImageRequest> imgreq = airsim_img_request_vehicle_name_pair.first;
 		for (int i=0; i < imgreq.size(); i++){
-			std::cout<<"imgreq: size, name, type, as float " << imgreq.size() << " " << imgreq[i].camera_name << " "<< static_cast<int>(imgreq[i].image_type) << " " << imgreq[i].pixels_as_float<< std::endl; 
+//			std::cout<<"imgreq: size, name, type, as float " << imgreq.size() << " " << imgreq[i].camera_name << " "<< static_cast<int>(imgreq[i].image_type) << " " << imgreq[i].pixels_as_float<< std::endl; 
 //imgreq: size name, type, as float 2 front_left_custom 0 0
 //imgreq: size name, type, as float 2 front_left_custom 1 1
 //type 1 is depthplanner, as float true
@@ -1501,23 +1527,32 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_img_msg_from_response(const ImageRes
  * 
  * Y is the same way
  * */
-sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range) const
+sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range, ros::Time tstamp, float airsim_ros_dt,  ros::Time curr_time0) 
 {
+	//tstamp: depthimg timestamp from image response, curr_time0 : rostime when depth image callback is called.
 
 	float y_normalized_camplan, y_cam;
 	float x_normalized_camplan, x_cam;
 	float z_cam;
 	int height, width;
-	std::cout<<"pub_point_cloud_depthimg "<<depth_img.at<float>(1,1) <<std::endl;
+	//std::cout<<"pub_point_cloud_depthimg "<<depth_img.at<float>(1,1) <<std::endl;
    	height = depth_img.rows;
    	width = depth_img.cols;
 	 vector<float> points;
+    	nh_private_.getParam("clip_floor", clip_floor_);
+    	nh_private_.getParam("floor_threshold", floor_threshold_);
+        nh_private_.getParam("max_range", max_range_);
+        nh_private_.getParam("depth_lag", depth_lag_);//time offset of depth img
+						// to debug the lagging of depth behind robot pose tf
+//std::cout<<"clip_floor "<< clip_floor_ <<" floor_threshold "<<floor_threshold_<<" depth_lag "<<depth_lag_<<std::endl;
 	for(int y = 0; y < depth_img.rows; y++)
 	{
     		const float* Mi = depth_img.ptr<float>(y);
     		for(int x = 0; x < depth_img.cols; x++){
 			if (max_range>0){
 				z_cam= std::min(max_range, depth_img.at<float>(y,x));
+				if (depth_img.at<float>(y,x)>max_range)
+					continue; //skip this point, or keep the clipped version.
 			}else{
 				z_cam= depth_img.at<float>(y,x);
 			}
@@ -1525,9 +1560,16 @@ sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv
 	         	y_cam = y_normalized_camplan * z_cam;
           		x_normalized_camplan = (float (x-width/2))/(width/2);
           		x_cam = x_normalized_camplan * z_cam;
+
+			// set parameter to determine if the clip floor or not
+			if (clip_floor_ && y_cam > floor_threshold_ ){
+			//	std::cout<<" skip \n";
+				continue; //skip floor points for debug
+			}
+				// scan_matching 
 			points.push_back(z_cam);
-                points.push_back(x_cam);
-                points.push_back(y_cam);
+                	points.push_back(x_cam);
+                	points.push_back(y_cam);
 		}
 	}
 	int n_points = points.size();
@@ -1548,7 +1590,14 @@ sensor_msgs::PointCloud2 AirsimROSWrapper::get_cloud_msg_from_depthimg(const  cv
     cloud_msg.width = n_points/3;
     cloud_msg.header.frame_id ="front_left_custom_body/static";// vehicle_name;
 //cloud_msg.header.seq = msg->header.seq;
-    cloud_msg.header.stamp = ros::Time::now();
+    ros::Duration time_lag = ros::Duration(depth_lag_); // depth_lag_ in second
+    ros::Duration time_lag2 = ros::Duration(airsim_ros_dt); // depth_lag_ in second
+    std::cout << "curr_time0 - now(): "<< (curr_time0 - ros::Time::now()).toSec()<<std::endl;
+    //cloud_msg.header.stamp = ros::Time::now(); // use current ros time
+    cloud_msg.header.stamp = curr_time0 ; // use the closest ros time when callback is called.
+    //cloud_msg.header.stamp = tstamp ;
+    //cloud_msg.header.stamp = tstamp + time_lag2; // use airsim img time + time_lag2
+//cloud_msg.header.stamp = tstamp + time_lag;
 
     for(size_t i=0; i<n_points/3; ++i, ++iter_x, ++iter_y, ++iter_z){
         *iter_x = points[3*i+0];
@@ -1609,7 +1658,7 @@ void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img,
 	float x_normalized_camplan, x_cam;
 	float z_cam;
 	int height, width;
-	std::cout<<"save_point_cloud "<<depth_img.at<float>(1,1) <<std::endl;
+	//std::cout<<"save_point_cloud "<<depth_img.at<float>(1,1) <<std::endl;
     	std::ofstream fin(filename.c_str());
    	height = depth_img.rows;
    	width = depth_img.cols;
@@ -1634,7 +1683,7 @@ void AirsimROSWrapper::save_point_cloud(std::string filename, cv::Mat depth_img,
 }
 void AirsimROSWrapper::save_depth_img(std::string filename, cv::Mat depth_img, float max_range)
 {
-	std::cout<<"save_depth_img "<<depth_img.at<float>(1,1) <<std::endl;
+//	std::cout<<"save_depth_img fn"<<filename <<" " <<depth_img.at<float>(1,1) <<std::endl;
 	float sum=0;
     	std::ofstream fin(filename.c_str());
 	float z_cam;
@@ -1662,16 +1711,28 @@ sensor_msgs::ImagePtr AirsimROSWrapper::get_depth_img_msg_from_response(const Im
 {
     // todo using img_response.image_data_float direclty as done get_img_msg_from_response() throws an error, 
     // hence the dependency on opencv and cv_bridge. however, this is an extremely fast op, so no big deal.
+    ros::Time curr_time0 = ros::Time::now(); 
+    float airsim_ros_diff =(curr_time0-airsim_timestamp_to_ros(img_response.time_stamp)).toSec();
+	    // wang: airsim_ros_diff: this seem to be the difference btw airsim time stamp on the depthimg and the current rost time. ugly hack to solve the lagging problem: add this aount to the depthimg_pc2 stamp
+	    // but then why don't we just use the ros time inside the get_cloud_msg_from_depthimg()?
     cv::Mat depth_img = manual_decode_depth(img_response);
-    std::cout<<"debug_point_cloud " << debug_point_cloud_<<std::endl;
-    std::cout<<"max_range " << max_range_<<std::endl;
-    get_cloud_msg_from_depthimg(depth_img, "SimpleFlight", max_range_);
+    sensor_msgs::PointCloud2 depthimg_pc2;
+//    std::cout<<"debug_point_cloud " << debug_point_cloud_<<std::endl;
+//    std::cout<<"max_range " << max_range_<<std::endl;
+    depthimg_pc2 = get_cloud_msg_from_depthimg(depth_img, "SimpleFlight", max_range_, airsim_timestamp_to_ros(img_response.time_stamp), airsim_ros_diff, curr_time0);
+
+
+    ros::Time curr_time1 = ros::Time::now(); 
     if (debug_point_cloud_){
     	save_depth_img("depth_image.txt", depth_img, max_range_);
     	save_point_cloud("depth_cloud.asc", depth_img, max_range_);
     }
     sensor_msgs::ImagePtr depth_img_msg = cv_bridge::CvImage(std_msgs::Header(), "32FC1", depth_img).toImageMsg();
-    depth_img_msg->header.stamp = airsim_timestamp_to_ros(img_response.time_stamp);
+    depth_img_msg->header.stamp = airsim_timestamp_to_ros (img_response.time_stamp);
+    float dt = (depth_img_msg->header.stamp - depthimg_pc2.header.stamp).toSec();
+    ros::Time curr_time = ros::Time::now(); 
+
+    std::cout <<" curr ros time  / diff airsim img time "<< curr_time0 << " " << (curr_time0-airsim_timestamp_to_ros(img_response.time_stamp)).toSec() <<" " <<curr_time << " airsim img time "<<airsim_timestamp_to_ros(img_response.time_stamp)<< "airsim - ros odom time diff" << (airsim_timestamp_to_ros(curr_odom_airsim_time) -curr_odom_ros_time).toSec()<<" time diff depthimg_pc2 "<< dt <<std::endl;
     depth_img_msg->header.frame_id = frame_id;
     return depth_img_msg;
 }

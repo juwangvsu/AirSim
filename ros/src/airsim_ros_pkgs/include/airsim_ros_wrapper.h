@@ -30,6 +30,7 @@ STRICT_MODE_ON
 #include <chrono>
 #include <cv_bridge/cv_bridge.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <image_transport/image_transport.h>
@@ -203,12 +204,16 @@ private:
 
         ros::Subscriber vel_cmd_body_frame_sub;
         ros::Subscriber vel_cmd_world_frame_sub;
+        ros::Subscriber pose_cmd_world_frame_sub;
 
         ros::ServiceServer takeoff_srvr;
         ros::ServiceServer land_srvr;
 
         bool has_vel_cmd;
         VelCmd vel_cmd;
+        bool has_pose_cmd;
+        geometry_msgs::Pose pose_cmd;
+    	msr::airlib::YawMode pose_yaw_mode;
 
         /// Status
         // bool in_air_; // todo change to "status" and keep track of this
@@ -223,6 +228,7 @@ private:
     /// ROS subscriber callbacks
     void vel_cmd_world_frame_cb(const airsim_ros_pkgs::VelCmd::ConstPtr& msg, const std::string& vehicle_name);
     void vel_cmd_body_frame_cb(const airsim_ros_pkgs::VelCmd::ConstPtr& msg, const std::string& vehicle_name);
+    void pose_cmd_world_frame_cb(const geometry_msgs::Pose::ConstPtr& msg, const std::string& vehicle_name);
 
     void vel_cmd_group_body_frame_cb(const airsim_ros_pkgs::VelCmdGroup& msg);
     void vel_cmd_group_world_frame_cb(const airsim_ros_pkgs::VelCmdGroup& msg);
@@ -281,7 +287,7 @@ private:
     tf2::Quaternion get_tf2_quat(const msr::airlib::Quaternionr& airlib_quat) const;
     msr::airlib::Quaternionr get_airlib_quat(const geometry_msgs::Quaternion& geometry_msgs_quat) const;
     msr::airlib::Quaternionr get_airlib_quat(const tf2::Quaternion& tf2_quat) const;
-    nav_msgs::Odometry get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) const;
+    nav_msgs::Odometry get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) ;
     nav_msgs::Odometry get_odom_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
     airsim_ros_pkgs::CarState get_roscarstate_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
     msr::airlib::Pose get_airlib_pose(const float& x, const float& y, const float& z, const msr::airlib::Quaternionr& airlib_quat) const;
@@ -291,7 +297,7 @@ private:
     airsim_ros_pkgs::Altimeter get_altimeter_msg_from_airsim(const msr::airlib::BarometerBase::Output& alt_data) const;
     sensor_msgs::Range get_range_from_airsim(const msr::airlib::DistanceSensorData& dist_data) const;
     sensor_msgs::PointCloud2 get_lidar_msg_from_airsim(const msr::airlib::LidarData& lidar_data, const std::string& vehicle_name) const;
-    sensor_msgs::PointCloud2 get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range) const;
+    sensor_msgs::PointCloud2 get_cloud_msg_from_depthimg(const  cv::Mat depth_img,  const std::string& vehicle_name, float max_range, ros::Time tstamp, float airsim_ros_dt, ros::Time curr_time0); 
     sensor_msgs::NavSatFix get_gps_msg_from_airsim(const msr::airlib::GpsBase::Output& gps_data) const;
     sensor_msgs::MagneticField get_mag_msg_from_airsim(const msr::airlib::MagnetometerBase::Output& mag_data) const;
     airsim_ros_pkgs::Environment get_environment_msg_from_airsim(const msr::airlib::Environment::State& env_data) const;
@@ -332,7 +338,12 @@ private:
     bool is_vulkan_; // rosparam obtained from launch file. If vulkan is being used, we BGR encoding instead of RGB
     bool debug_point_cloud_; // rosparam obtained from launch file. If set true, save depth image to point cloud file at ~/.ros/
     float max_range_; // rosparam obtained from launch file. If set true, save depth image to point cloud file at ~/.ros/
+    float depth_lag_; // rosparam obtained from launch file. sec to offset the depth image lag 
+    float floor_threshold_; // rosparam obtained from launch file. threshold to clip the floor. default 0, floor is usually >0 due to ned frame
+    bool clip_floor_; // rosparam obtained from launch file. 
 
+    ros::Time curr_odom_ros_time;
+     msr::airlib::TTimePoint curr_odom_airsim_time;
     std::string host_ip_;
     std::unique_ptr<msr::airlib::RpcLibClientBase> airsim_client_ = nullptr;
     // seperate busy connections to airsim, update in their own thread

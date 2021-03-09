@@ -1,5 +1,8 @@
 <launch>
+<!-- 
 	<arg name="output" default="log"/>
+-->
+	<arg name="output" default="screen"/>
 	<arg name="publish_clock" default="false"/>
 	<arg name="is_vulkan" default="true"/>
 	<!-- 
@@ -9,8 +12,11 @@
 
 	<node name="airsim_node" pkg="airsim_ros_pkgs" type="airsim_node" output="$(arg output)">
 		<param name="/debug_point_cloud" type="bool" value="true" /> 
-		<param name="/max_range" type="double" value="20" /> 
+		<param name="/max_range" type="double" value="30" /> 
+		<param name="/depth_lag" type="double" value="0.7" /> 
 		<param name="is_vulkan" type="bool" value="false" /> 
+		<param name="clip_floor" type="bool" value="true" /> 
+		<param name="/floor_threshold" type="double" value="0" /> 
 		<!-- ROS timer rates. Note that timer callback will be processed at maximum possible rate, upperbounded by the following ROS params -->
 		<param name="update_airsim_img_response_every_n_sec" type="double" value="0.02" /> 
 		<param name="update_airsim_control_every_n_sec" type="double" value="0.01" />
