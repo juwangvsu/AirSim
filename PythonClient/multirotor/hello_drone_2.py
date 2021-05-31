@@ -110,7 +110,7 @@ print("state: %s" % pprint.pformat(state))
 
 state = client.getMultirotorState()
 print("state: %s" % pprint.pformat(state))
-caminfo = client.simGetCameraInfo("0")
+caminfo = client.simGetCameraInfo("front_center_custom")
 print("cam info: ", caminfo, caminfo.fov, type(caminfo.fov))
 
 airsim.wait_key('Press any key to take images')

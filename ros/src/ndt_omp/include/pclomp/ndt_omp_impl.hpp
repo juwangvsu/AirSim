@@ -845,9 +845,11 @@ pclomp::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengt
   // Calculate psi'(alpha_t)
   double d_psi_t = auxilaryFunction_dPsiMT (d_phi_t, d_phi_0, mu);
 
+  std::cout<<"******pclomp ndt: max_step_iterations: "<<max_step_iterations<<std::endl;
   // Iterate until max number of iterations, interval convergance or a value satisfies the sufficient decrease, Equation 1.1, and curvature condition, Equation 1.2 [More, Thuente 1994]
   while (!interval_converged && step_iterations < max_step_iterations && !(psi_t <= 0 /*Sufficient Decrease*/ && d_phi_t <= -nu * d_phi_0 /*Curvature Condition*/))
   {
+	  std::cout<<"pclomp ndt: step_iterations: "<<step_iterations<<std::endl;
     // Use auxilary function if interval I is not closed
     if (open_interval)
     {

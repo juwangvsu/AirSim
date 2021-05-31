@@ -110,6 +110,9 @@ namespace pclomp
     void setNumThreads(int n) {
       num_threads_ = n;
     }
+    int getNumThreads() {
+      return num_threads_ ;
+    }
 
 		/** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
 		  * \param[in] cloud the input point cloud target

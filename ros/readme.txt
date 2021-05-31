@@ -1,4 +1,3 @@
-3/23   test pull
 2/8/21 start_airsim.sh
 	ui: explorer, trajectory node
 	    
@@ -85,3 +84,13 @@ rostopic hz /move_group/monitored_planning_scene
 
 -----------other tips -----------------
 pyuic4 airsimui.ui > airsimui.py
+-------------------------------------------------------
+ros build steps:
+cd AirSim
+./setup.sh
+./build.sh
+cd ros
+catkin_make -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
+pyenv shell system
+        switch miniconda to py2.7
+

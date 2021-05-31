@@ -1154,7 +1154,8 @@ void AirsimROSWrapper::publish_vehicle_state()
                 {
                     auto imu_data = airsim_client_->getImuData(sensor_publisher.sensor_name, vehicle_ros->vehicle_name);
                     sensor_msgs::Imu imu_msg = get_imu_msg_from_airsim(imu_data);
-                    imu_msg.header.frame_id = vehicle_ros->vehicle_name;
+                    imu_msg.header.frame_id = "SimpleFlight/odom_local_ned";//vehicle_ros->vehicle_name;
+                    //imu_msg.header.frame_id = vehicle_ros->vehicle_name;
                     sensor_publisher.publisher.publish(imu_msg);
                     break;
                 }

@@ -1,3 +1,23 @@
+3/24/21 robot_localization
+	ekf estimator,
+	ekf_template2.launch
+		each sensor has a mask of 1/0 on the 15 state varibles
+		[x,y,z,r,p,y,vx,vy,vz,vr,vp, vy, ax,ay,az]
+		if odom0 commented off, x, vx state not updating.
+		imu0
+3/23/21
+	airsim imu odom data analysis:
+	imu_odom_data_airsim.xls
+	the imu linear-acc and angular vel are verified to be in body frame
+		even though the frame_id in imu msg said SimpleFlight
+	the odom is in the SimpleFlight frame ok, which is considered as world frame
+	the linear_acc is afected by the real linear acceleration and gravitational,	the gravitation vector multiply by rotation matrix add its affect on 
+	
+	the linear acc on body frame	
+3/20/21
+	add imu.py to dump imu data to imu0.txt. the imu data seems bad.
+	even at static, vx, vy, vz seems too noisy
+
 3/6/21
 	final verdict, depthimg_pc2 timestamp should be current ros time, not the time in airsim image
 	response. this is so because the time gap between ros and ue game seems increase over time,
@@ -68,7 +88,7 @@ angular:
         test steps:
 	(1) roslaunch realsense2_camera rs_camera.launch color_width:=1280 color_height:=720
 				--- launch realsense node, publish rgb, depth data and camera info. realsense-ros, sdk must be installed. 
-	(2) python ros_yolo_detect.py --- this runs yolo on rgb feed, publish labels
+	(2) python ros_yolo_detect.py --- this runs yolo on rgb feed, publish labels *3*
 				topic and detected images.
 	(3) python listener.py       --- show detected yolo boxes
 
@@ -80,3 +100,14 @@ angular:
 		~/.ros/depth_image.txt, 256x256 matrix, z value
 		~/.ros/depth_cloud.asc, xyzrgb tubples
 	frame_id="front_left_custom_body/static"
+-------------------------------------------------------
+ros build steps:
+cd AirSim
+./setup.sh
+./build.sh
+cd ros
+catkin_make -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
+rosparam set /use_sim_time false; roslaunch airsim_node.launch host:=asus1
+pyenv shell system
+	switch miniconda to py2.7
+*3* pyenv activate miniconda3-latest
